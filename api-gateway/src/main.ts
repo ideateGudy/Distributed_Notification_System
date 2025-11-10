@@ -8,6 +8,12 @@ import { ValidationPipe, BadRequestException, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import helmet from '@fastify/helmet';
 
+// Import custom modules
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { CorrelationMiddleware } from './common/middleware/correlation.middleware';
+import { caseConverter } from './common/utils/case-converter';
+
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
@@ -31,9 +37,10 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Middlewares
+  // Middleware: Attach correlation ID
+  app.use(CorrelationMiddleware);
 
-  //Global Pipes:
+  // Global Pipes
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -52,6 +59,26 @@ async function bootstrap() {
       },
     }),
   );
+
+  // Add middleware to convert request body keys to camelCase
+  // This is necessary because ValidationPipe runs before the DTO is created
+  /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
+  app.use((req, res, next) => {
+    if (req.body) {
+      req.body = caseConverter.toCamelCase(req.body);
+    }
+    if (req.query) {
+      req.query = caseConverter.toCamelCase(req.query);
+    }
+    next();
+  });
+  /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
+
+  // Global Interceptors: Format successful responses
+  app.useGlobalInterceptors(new ResponseInterceptor());
+
+  // Global Filters: Format error responses
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   // Start the API Gateway
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
