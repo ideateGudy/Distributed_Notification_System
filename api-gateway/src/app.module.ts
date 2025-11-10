@@ -5,6 +5,7 @@ import { HealthModule } from './health/health.module';
 import configuration from './config/config';
 import { validate } from './config/config.schema';
 import { AuthModule } from './auth/auth.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AuthModule } from './auth/auth.module';
     ScheduleModule.forRoot(),
     HealthModule,
     AuthModule,
+    NotificationModule,
   ],
   controllers: [],
   providers: [],

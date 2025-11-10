@@ -23,9 +23,8 @@ async function bootstrap() {
     }),
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument
   const configService = app.get(ConfigService);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+
   const port = configService.get<number>('port', 3000);
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -81,7 +80,7 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   // Start the API Gateway
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+
   await app.listen(port, '0.0.0.0');
 
   Logger.log(`🚀 API Gateway running on: http://localhost:${port}`);
