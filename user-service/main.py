@@ -1,14 +1,15 @@
 from datetime import timedelta
 from typing import Annotated
 
+from fastapi import Depends, FastAPI, HTTPException
+from sqlalchemy.orm import Session
+
 import crud
 from auth import create_access_token, get_current_user, get_db
 from database import engine
-from fastapi import Depends, FastAPI, HTTPException
 from models import Base as ModelsBase
 from models import User
 from schemas import UserCreate, UserLogin, UserOut
-from sqlalchemy.orm import Session
 
 ModelsBase.metadata.create_all(bind=engine)
 
