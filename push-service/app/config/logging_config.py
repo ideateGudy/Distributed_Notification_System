@@ -16,3 +16,7 @@ def setup_logging(level=logging.INFO):
     # logging.getLogger("uvicorn").setLevel(logging.WARNING)  # quieten noisy loggers
     # logging.getLogger("celery").setLevel(logging.INFO)
     # logging.getLogger("pika").setLevel(logging.WARNING)
+
+    return logging
+
+
