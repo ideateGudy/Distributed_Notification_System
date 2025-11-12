@@ -14,18 +14,12 @@ This repository serves as the central gateway for managing distributed notificat
 ## Wilsonide Contribution 
 
 ## Promise Eguh Contribution 
-*** Email Server Live URL ***
-- https://hng-be-stage-4-emailserver.onrender.com
-*** Email Server DOC URL ***
-- https://hng-be-stage-4-emailserver.onrender.com/docs
-*** Templates Server Live URL ***
-- https://hng-be-stage-4-production.up.railway.app
-*** Templates Server DOC URL ***
-- https://hng-be-stage-4-production.up.railway.app/docs
-*** Email Server Repository URL ***
-- https://github.com/Avan-Kel/HNG-BE-STAGE-4-emailServer.git
-*** Templates Server Repository URL ***
-- https://github.com/Avan-Kel/HNG-BE-STAGE-4.git
+- *** Email Server Live URL ***:https://hng-be-stage-4-emailserver.onrender.com
+- *** Email Server DOC URL ***:https://hng-be-stage-4-emailserver.onrender.com/docs
+- *** Templates Server Live URL ***:https://hng-be-stage-4-production.up.railway.app
+- *** Templates Server DOC URL ***:https://hng-be-stage-4-production.up.railway.app/docs
+- *** Email Server Repository URL ***:https://github.com/Avan-Kel/HNG-BE-STAGE-4-emailServer.git
+- *** Templates Server Repository URL ***:https://github.com/Avan-Kel/HNG-BE-STAGE-4.git
 
 # Overview
 
