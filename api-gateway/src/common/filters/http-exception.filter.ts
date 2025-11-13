@@ -4,33 +4,41 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
-  Logger,
 } from '@nestjs/common';
 import { caseConverter } from '../utils/case-converter';
+import { appLogger } from '../../modules/logger/winston.config';
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(HttpExceptionFilter.name);
-
   /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
   catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse();
-    const request = ctx.getRequest();
     const status = exception.getStatus();
 
-    // Get the correlation ID
-    const correlationId = request.headers['x-correlation-id'] || 'unknown';
-
-    this.logger.error(
-      `[${correlationId}] Status ${status} Error: ${exception.message}`,
+    appLogger.error(
+      `Status ${status} Error: ${exception.message}`,
       exception.stack,
     );
 
     // Get the raw error response
     const errorResponse = exception.getResponse();
 
-    // Format it as per project spec
+    // If the error response already has a 'detail' field (from remote service validation),
+    // or is already an array, pass it through as-is
+    if (
+      (typeof errorResponse === 'object' &&
+        ((errorResponse as any).detail !== undefined ||
+          Array.isArray(errorResponse))) ||
+      (typeof errorResponse === 'object' &&
+        (errorResponse as any).status &&
+        (errorResponse as any).timestamp)
+    ) {
+      response.status(status).send(errorResponse);
+      return;
+    }
+
+    // Format it as per project spec for standard errors
     const standardError = {
       success: false,
       message:
