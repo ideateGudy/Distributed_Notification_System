@@ -32,7 +32,7 @@ The **API Gateway** is the central hub of the Distributed Notification System. I
 
 ## ���️ Architecture
 
-![Flow](./img/flow.png)
+![Flow](./img/flows.png)
 
 ### Module Structure
 
