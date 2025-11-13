@@ -324,4 +324,77 @@ export class NotificationController {
       /* eslint-enable @typescript-eslint/no-unsafe-assignment */
     };
   }
+
+  /**
+   * POST /api/v1/test/emit-status-update
+   * TEST ENDPOINT: Emit a status update to the queue for testing the listener
+   * This simulates what consumer services (Email, Push) would do
+   * Used to verify the status listener callback works correctly
+   */
+  @Post('test/emit-status-update')
+  @HttpCode(HttpStatus.OK)
+  @ApiBody({
+    type: UpdateNotificationStatusDto,
+    examples: {
+      delivered: {
+        summary: 'Test: Delivered Status',
+        value: {
+          notification_id: '550e8400-e29b-41d4-a716-446655440000',
+          status: 'delivered',
+          timestamp: '2025-11-13T15:30:00Z',
+        },
+      },
+      failed: {
+        summary: 'Test: Failed Status',
+        value: {
+          notification_id: '550e8400-e29b-41d4-a716-446655440000',
+          status: 'failed',
+          timestamp: '2025-11-13T15:30:00Z',
+          error: 'Connection timeout',
+        },
+      },
+      processing: {
+        summary: 'Test: Processing Status',
+        value: {
+          notification_id: '550e8400-e29b-41d4-a716-446655440000',
+          status: 'pending',
+        },
+      },
+    },
+  })
+  @ApiOperation({
+    summary: 'TEST: Emit status update to queue',
+    description:
+      'Test endpoint to emit a status update to the RabbitMQ queue. This simulates consumer services publishing status updates. The listener will receive it and update the Redis cache.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Status update emitted to queue successfully',
+  })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({
+    status: 500,
+    description: 'Failed to emit status update',
+  })
+  emitStatusUpdateToQueue(
+    @Body() updateStatusDto: UpdateNotificationStatusDto,
+  ) {
+    this.logger.log(
+      `[TEST] Emitting status update: ${updateStatusDto.notification_id} → ${updateStatusDto.status}`,
+    );
+
+    const result = this.notificationService.emitStatusUpdateToQueue(
+      updateStatusDto.notification_id,
+      updateStatusDto.status,
+      updateStatusDto.timestamp,
+      updateStatusDto.error,
+    );
+
+    return {
+      success: true,
+      message:
+        'Status update emitted to queue (check listener logs to verify callback executed)',
+      data: result,
+    };
+  }
 }

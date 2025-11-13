@@ -11,6 +11,8 @@ export enum NotificationStatus {
   DELIVERED = 'delivered',
   PENDING = 'pending',
   FAILED = 'failed',
+  BOUNCED = 'bounced',
+  PROCESSING = 'processing',
 }
 
 export class UpdateNotificationStatusDto {

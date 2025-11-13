@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { TemplateService } from '../template/template.service';
 import { UserService } from '../user/user.service';
 import { v4 as uuidv4 } from 'uuid';
@@ -11,6 +12,7 @@ import { RabbitMQService } from '../rabbitmq/rabbitmq.service';
 import { AppLoggerService } from '../logger/app-logger.service';
 import { RedisService } from '../redis/redis.service';
 import { ConfigService } from '@nestjs/config';
+import { NotificationStatus } from './dto/update-notification-status.dto';
 
 interface ProcessParams {
   dto: SendNotificationDto;
@@ -19,7 +21,7 @@ interface ProcessParams {
 }
 
 @Injectable()
-export class NotificationService {
+export class NotificationService implements OnModuleInit {
   // proxies for synchronous internal REST calls
 
   constructor(
@@ -34,8 +36,73 @@ export class NotificationService {
   }
 
   /**
-   * Main processing function. Orchestrates all steps.
+   * Register status update callback on module initialization
+   * This callback updates the Redis cache when consumer services publish status updates
    */
+  onModuleInit() {
+    this.rabbit.onStatusUpdate(async (statusUpdate) => {
+      try {
+        // Extract notification ID from the status update message
+        const { notification_id, status, timestamp, error } = statusUpdate;
+
+        this.logger.log('Processing status update from queue', {
+          notification_id,
+          status,
+          timestamp,
+        });
+
+        // Get current status data from Redis
+        const currentStatusData = await this.redis.get<string>(
+          `status_${notification_id}`,
+        );
+
+        if (!currentStatusData) {
+          this.logger.warn('Notification not found in cache', {
+            notification_id,
+          });
+          return;
+        }
+
+        /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+        const currentStatus = JSON.parse(currentStatusData);
+
+        // Update status from "queued" to the new status
+        const updatedStatus = {
+          ...currentStatus,
+          status, // Update from "queued" to new status (delivered, failed, processing, bounced, etc)
+          updated_at: timestamp || new Date().toISOString(),
+          ...(error && { error }), // Include error message if provided
+        };
+
+        // Get TTL from config (default: 24 hours)
+        const ttl = this.configService.get<number>(
+          'redis.keyExpirationMilliseconds',
+        );
+
+        // Update Redis cache with new status
+        await this.redis.set(
+          `status_${notification_id}`,
+          JSON.stringify(updatedStatus),
+          ttl,
+        );
+
+        this.logger.log('Upstash Redis cache updated', {
+          notification_id,
+          old_status: currentStatus.status,
+          new_status: status,
+          cache_key: `status_${notification_id}`,
+        });
+        /* eslint-enable @typescript-eslint/no-unsafe-member-access */
+      } catch (err) {
+        this.logger.error('Error updating Redis cache from status update', {
+          error: err instanceof Error ? err.message : String(err),
+          notification_id: statusUpdate.notification_id,
+        });
+      }
+    });
+
+    this.logger.log('Status update callback registered in NotificationService');
+  }
   async processNotificationRequest(params: ProcessParams) {
     const { dto, idempotentKey } = params;
 
@@ -327,13 +394,62 @@ export class NotificationService {
       86400000,
     );
 
-    /* eslint-disable @typescript-eslint/no-unsafe-member-access */
     this.logger.log(`Status updated for ${notificationId}: ${status}`);
-    /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
     /* eslint-disable @typescript-eslint/no-unsafe-return */
     return updatedStatus;
     /* eslint-enable @typescript-eslint/no-unsafe-return */
+  }
+
+  /**
+   * TEST ENDPOINT: Emit a status update to the queue
+   * This is used to test the status listener and callback system
+   * Producer: POST endpoint (simulating consumer services)
+   * Consumer: RabbitMQ status listener in RabbitMQService listens on status.queue
+   * Routing: Exchange (notifications.direct) + routing_key (status.update) → status.queue
+   */
+  emitStatusUpdateToQueue(
+    notificationId: string,
+    status: NotificationStatus,
+    timestamp?: string,
+    error?: string,
+  ) {
+    try {
+      const statusUpdate = {
+        notification_id: notificationId,
+        status,
+        timestamp: timestamp || new Date().toISOString(),
+        ...(error && { error }),
+      };
+
+      this.logger.log('Emitting status update to queue', {
+        notification_id: notificationId,
+        status,
+      });
+
+      // Publish to the status.update routing key
+      // Exchange: notifications.direct (routing type: direct)
+      // Binding: status.update routing_key → status.queue
+      // The listener consumes from status.queue
+      this.rabbit.publish('status.update', statusUpdate);
+
+      this.logger.log('Status update emitted to queue', {
+        notification_id: notificationId,
+        routing_key: 'status.update',
+        destination_queue: 'status.queue',
+      });
+
+      return statusUpdate;
+    } catch (err) {
+      this.logger.error('Failed to emit status update to queue', {
+        error: err instanceof Error ? err.message : String(err),
+        notification_id: notificationId,
+      });
+      throw new HttpException(
+        'Failed to emit status update',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   // --- Note ---
