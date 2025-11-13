@@ -1,9 +1,8 @@
 // <reference lib="es2020" />
 // This file validates our .env variables
 // If a variable is missing or wrong, the app won't start.
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment */
-import { Logger } from '@nestjs/common';
 import * as Joi from 'joi';
+import { appLogger } from '../modules/logger/winston.config';
 
 export const validate = (
   config: Record<string, unknown>,
@@ -19,9 +18,14 @@ export const validate = (
 
     USER_SERVICE_URL: Joi.string().uri().required(),
     TEMPLATE_SERVICE_URL: Joi.string().uri().required(),
+    USER_SERVICE_BASE_URL: Joi.string().uri().required(),
+    TEMPLATE_SERVICE_BASE_URL: Joi.string().uri().required(),
+    EMAIL_SERVICE_BASE_URL: Joi.string().uri().required(),
+    PUSH_SERVICE_BASE_URL: Joi.string().uri().required(),
 
     RABBITMQ_URL: Joi.string().required(),
     REDIS_URL: Joi.string().required(),
+    REDIS_KEY_EXPIRATION_MILLISECONDS: Joi.number().default(86400000),
   });
 
   const { error } = schema.validate(config, {
@@ -32,11 +36,10 @@ export const validate = (
   });
 
   if (error) {
-    Logger.error('--- Environment variable validation error ---');
-    Logger.error(error.message);
+    appLogger.error('--- Environment variable validation error ---');
+    appLogger.error(error.message);
     process.exit(1);
   }
 
   return config;
 };
-/* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment */
