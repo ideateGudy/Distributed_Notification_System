@@ -14,6 +14,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { caseConverter } from './common/utils/case-converter';
+import { RateLimiterGuard } from './common/guards/rate-limiter.guard';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -73,6 +74,10 @@ async function bootstrap() {
       },
     }),
   );
+
+  // Global Guards: Rate Limiting
+  // Enforces 100 requests per 15 minutes per IP address
+  app.useGlobalGuards(new RateLimiterGuard());
 
   // Global Interceptors: Format successful responses
   app.useGlobalInterceptors(new ResponseInterceptor());

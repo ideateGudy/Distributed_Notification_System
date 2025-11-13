@@ -112,6 +112,27 @@ export class RedisService {
   }
 
   /**
+   * Get the raw Redis client (ioredis instance)
+   * Useful for advanced operations like rate limiting
+   */
+  getRedis(): any {
+    try {
+      // KeyvRedis wraps the actual Redis client
+      if (this.keyvStore && typeof this.keyvStore === 'object') {
+        /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+        return (this.keyvStore as any).client || (this.keyvStore as any).redis;
+        /* eslint-enable @typescript-eslint/no-unsafe-member-access */
+      }
+      return null;
+    } catch (error) {
+      this.logger.error('Failed to get raw Redis client', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+  }
+
+  /**
    * Test connection to Redis
    */
   async testConnection(): Promise<boolean> {
