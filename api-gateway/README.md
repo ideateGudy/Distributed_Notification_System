@@ -66,7 +66,7 @@ The **API Gateway** is the central hub of the Distributed Notification System. I
 
 ### Module Structure
 
-```json
+```bash
 src/
 ├── common/                 # Shared utilities & middleware
 │   ├── controllers/       # Global controllers (root)
