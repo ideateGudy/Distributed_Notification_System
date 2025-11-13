@@ -314,9 +314,10 @@ Content-Type: application/json
 **Status Values:**
 
 - `pending` - Queued for delivery
-- `pending` - Being processed
+- `processing` - Being processed
 - `delivered` - Successfully delivered
 - `failed` - Delivery failed
+- `bounced` - Email bounced (invalid recipient)
 
 **Response (200 OK):**
 
@@ -327,10 +328,57 @@ Content-Type: application/json
   "data": {
     "notification_id": "550e8400-e29b-41d4-a716-446655440002",
     "status": "delivered",
-    "updated_at": "2025-11-13T10:35:00Z"
+    "timestamp": "2025-11-13T10:35:00Z"
   }
 }
 ```
+
+#### 5. TEST: Emit Status Update to Queue
+
+Test endpoint to emit a status update to RabbitMQ. This simulates what consumer services (Email, Push) publish. The status listener will receive it from `status.queue` and update Redis cache automatically.
+
+```http
+POST /api/v1/test/emit-status-update
+Content-Type: application/json
+
+{
+  "notification_id": "550e8400-e29b-41d4-a716-446655440002",
+  "status": "delivered",
+  "timestamp": "2025-11-13T10:35:00Z"
+}
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "message": "Status update emitted to queue (check listener logs to verify callback executed)",
+  "data": {
+    "notification_id": "550e8400-e29b-41d4-a716-446655440002",
+    "status": "delivered",
+    "timestamp": "2025-11-13T10:35:00Z"
+  }
+}
+```
+
+**What Happens Behind the Scenes:**
+1. Status update is published to RabbitMQ with routing key `status.update`
+2. Exchange `notifications.direct` routes it to `status.queue`
+3. Status listener (in `RabbitMQService`) consumes from `status.queue`
+4. Callback function (in `NotificationService.onModuleInit()`) automatically fires
+5. Callback retrieves existing notification status from Redis
+6. Updates status from `queued` → new status (e.g., `delivered`)
+7. Updates Redis cache with new status and `updated_at` timestamp
+8. Message is acknowledged (removed from queue)
+
+**Verify the Update:**
+```http
+GET /api/v1/notifications/status?notification_id=550e8400-e29b-41d4-a716-446655440002
+Authorization: Bearer {jwt_token}
+```
+
+The response should show the updated status instead of `queued`.
 
 ---
 
@@ -422,3 +470,44 @@ GET /api/v1/health
 ```
 
 ---
+
+## Rate Limiting
+
+The API Gateway enforces rate limiting to protect against abuse and ensure fair resource usage across all clients.
+
+### Configuration
+
+- **Limit**: 100 requests per 15 minutes per IP address
+- **Response on limit exceeded**: HTTP 429 (Too Many Requests)
+- **Scope**: Applied globally to all endpoints
+
+### Rate Limit Headers
+
+All responses include rate limit information in headers:
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 87
+X-RateLimit-Reset: 2024-01-15T10:30:00Z
+```
+
+### Rate Limited Response
+
+When the rate limit is exceeded, the API returns:
+
+```http
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+Retry-After: 45
+
+{
+  "success": false,
+  "message": "Rate limit exceeded",
+  "error": "Too many requests from this IP address",
+  "meta": {
+    "retryAfter": 45,
+    "resetTime": "2024-01-15T10:30:00Z"
+  }
+}
+```
+
