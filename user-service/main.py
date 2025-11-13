@@ -1,65 +1,27 @@
-from datetime import timedelta
-from typing import Annotated
+from dotenv import load_dotenv
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from fastapi import Depends, FastAPI, HTTPException
-from sqlalchemy.orm import Session
-
-import crud
-from auth import create_access_token, get_current_user, get_db
 from database import engine
 from models import Base as ModelsBase
-from models import User
-from schemas import UserCreate, UserLogin, UserOut
+from routers import users
 
+load_dotenv()
 ModelsBase.metadata.create_all(bind=engine)
 
 app = FastAPI(title="user_service")
 
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.post("/register")
-def register_user(payload: UserCreate, db: Annotated[Session, Depends(get_db)]):
-    db_user = crud.get_user_by_email(db, payload.email)
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    created = crud.create_user(db, payload)
-    return {
-        "success": True,
-        "data": {"user_id": created.id},
-        "message": "created",
-        "meta": {},
-    }
-
-
-@app.post("/login")
-def login(form_data: UserLogin, db: Annotated[Session, Depends(get_db)]):
-    user = crud.authenticate_user(db, form_data.email, form_data.password)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    access_token_expires = timedelta(minutes=60)
-    access_token = create_access_token(
-        subject=user.email,
-        expires_delta=access_token_expires,
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
-
-
-@app.get("/me", response_model=UserOut)
-def me(current_user: Annotated[User, Depends(get_current_user)]):
-    return current_user
-
-
-@app.get("/users", response_model=list[UserOut])
-def list_users(db: Annotated[Session, Depends(get_db)]):
-    users = crud.get_users(db)
-    return users
-
-
-@app.put("/users/{user_id}", response_model=UserOut)
-def update_user(
-    user_id: int, user_update: UserCreate, db: Annotated[Session, Depends(get_db)]
-):
-    # Implementation for updating a user will go here
-    pass
+# Versioned API routes
+app.include_router(users.router, prefix="/api/v1")
 
 
 @app.get("/health")
