@@ -7,6 +7,7 @@ import { HttpModule } from '@nestjs/axios';
   imports: [
     TerminusModule,
     HttpModule, // We'll need this to ping other services
+    // RedisModule is global, so it's already available via CACHE_MANAGER
   ],
   controllers: [HealthController],
 })

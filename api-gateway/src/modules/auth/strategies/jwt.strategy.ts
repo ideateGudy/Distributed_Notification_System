@@ -4,16 +4,14 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly configService: ConfigService) {
-    /* eslint-disable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: configService.get<string>('jwt.secret'),
     } as any);
-    /* eslint-enable @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
   }
 
   /**
@@ -22,7 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    */
   /* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
   validate(payload: any) {
-    return { user_id: payload.sub, email: payload.email, roles: payload.roles };
+    return { user_id: payload.user_id, email: payload.sub };
   }
   /* eslint-enable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
 }
