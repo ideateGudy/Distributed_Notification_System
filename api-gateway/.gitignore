@@ -58,5 +58,3 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # others
 task-instructions.md
 api-gateway-architecture.md
-docker-compose.yml
-
