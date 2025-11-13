@@ -8,21 +8,6 @@
   <strong>Main entry point for the Distributed Notification System microservices architecture</strong>
 </p>
 
-## ��� Table of Contents
-
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Quick Start](#quick-start)
-- [API Endpoints](#api-endpoints)
-- [Authentication](#authentication)
-- [Request/Response Format](#requestresponse-format)
-- [Error Handling](#error-handling)
-- [Configuration](#configuration)
-- [Development](#development)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
-
 ## ��� Overview
 
 The **API Gateway** is the central hub of the Distributed Notification System. It serves as:
@@ -72,23 +57,23 @@ The **API Gateway** is the central hub of the Distributed Notification System. I
     ┌───▼──────┐   ┌──────▼──────┐                                      |
     │ SMTP     │   │ FCM/APNs    │                                      |
     │ Provider │   │ (External)  │                                      |
-    └──────────┘   └─────────────┘
-                                                                ┌───▼──────┐
-                                                                │ User    │
-                                                                │ Service  │
-                                                                └──────────┘
+    └──────────┘   └─────────────┘                                      |
+                                                                    ┌───▼──────┐
+                                                                    │ User    │
+                                                                    │ Service  │
+                                                                    └──────────┘
 ```
 
 ### Module Structure
 
-```
+```json
 src/
 ├── common/                 # Shared utilities & middleware
 │   ├── controllers/       # Global controllers (root)
 │   ├── filters/          # HTTP exception filters
 │   ├── interceptors/     # Response/error interceptors
-│   ├── middleware/       # Correlation ID middleware
-│   └── utils/            # Case conversion utilities
+│   ├── utils/            # Case conversion utilities
+│
 ├── config/               # Configuration management
 │   ├── config.ts        # Environment config loader
 │   └── config.schema.ts # Validation schema
@@ -110,7 +95,7 @@ src/
 ### Prerequisites
 
 - Node.js 18+
-- npm or yarn
+- npm
 - Redis instance (Upstash or local)
 - RabbitMQ instance
 - Environment variables configured
@@ -126,40 +111,7 @@ cp .env.example .env
 
 # Configure environment variables
 # See Configuration section below
-```
-
-### Environment Configuration
-
-Create a `.env` file with the following variables:
-
-```env
-# Server
-PORT=3000
-NODE_ENV=development
-
-# Database & Cache
-REDIS_URL=redis://:password@host:port/db
-UPSTASH_REDIS_REST_URL=https://...
-UPSTASH_REDIS_REST_TOKEN=...
-
-# Message Queue
-RABBITMQ_URI=amqp://user:password@host:5672
-RABBITMQ_EXCHANGE=notifications
-
-# JWT
-JWT_SECRET=your-secret-key-here
-JWT_EXPIRATION=24h
-
-# Services (for inter-service communication)
-USER_SERVICE_URL=http://user-service:3001
-TEMPLATE_SERVICE_URL=http://template-service:3002
-EMAIL_SERVICE_URL=http://email-service:3003
-PUSH_SERVICE_URL=http://push-service:3004
-
-# Logging
-LOG_LEVEL=info
-LOG_DIR=./logs
-```
+``
 
 ### Running the Application
 
@@ -193,6 +145,10 @@ Content-Type: application/json
   "email": "user@example.com",
   "password": "securePassword123",
   "name": "John Doe"
+    "preferences": {
+    "email": true,
+    "push": true
+  }
 }
 ```
 
@@ -352,14 +308,13 @@ Content-Type: application/json
 {
   "notification_id": "550e8400-e29b-41d4-a716-446655440002",
   "status": "delivered",
-  "timestamp": "2025-11-13T10:35:00Z"
 }
 ```
 
 **Status Values:**
 
 - `pending` - Queued for delivery
-- `processing` - Being processed
+- `pending` - Being processed
 - `delivered` - Successfully delivered
 - `failed` - Delivery failed
 
@@ -460,173 +415,10 @@ Content-Type: application/json
 
 ---
 
-### Health Check
+### Health Check for all microservices
 
 ```http
 GET /api/v1/health
 ```
 
 ---
-
-## ��� Authentication
-
-Uses JWT tokens. Get a token by logging in:
-
-```bash
-curl -X POST http://localhost:3000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password123"}'
-```
-
-Use token in Authorization header:
-
-```bash
-curl -H "Authorization: Bearer {token}" http://localhost:3000/api/v1/users/me
-```
-
-## ��� Request/Response Format
-
-### Standard Response
-
-```json
-{
-  "success": true,
-  "message": "Success message",
-  "data": { },
-  "meta": { }
-}
-```
-
-### Pagination
-
-```http
-GET /api/v1/email/status?page=1&limit=20
-```
-
-Meta includes: `total`, `limit`, `page`, `total_pages`, `has_next`, `has_previous`
-
-## ⚠️ Error Handling
-
-### Error Response
-
-```json
-{
-  "success": false,
-  "message": "Error message",
-  "error": "ERROR_CODE"
-}
-```
-
-### HTTP Status Codes
-
-- 200: OK
-- 201: Created
-- 202: Accepted (async)
-- 400: Bad Request
-- 401: Unauthorized
-- 404: Not Found
-- 500: Server Error
-
-## ⚙️ Configuration
-
-### Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `PORT` | Server port (default: 3000) |
-| `NODE_ENV` | Environment (development/production) |
-| `JWT_SECRET` | JWT signing secret |
-| `JWT_EXPIRATION` | Token expiration time |
-| `REDIS_URL` | Redis connection string |
-| `RABBITMQ_URI` | RabbitMQ connection URI |
-| `USER_SERVICE_URL` | User service endpoint |
-| `TEMPLATE_SERVICE_URL` | Template service endpoint |
-| `EMAIL_SERVICE_URL` | Email service endpoint |
-| `PUSH_SERVICE_URL` | Push service endpoint |
-| `LOG_LEVEL` | Logging level (debug/info/warn/error) |
-
-## ���️ Development
-
-### Quick Start
-
-```bash
-npm install
-npm run start:dev
-```
-
-### Available Commands
-
-```bash
-npm run build          # Build TypeScript
-npm run start          # Start production
-npm run start:dev      # Start with hot reload
-npm run start:debug    # Start with debugger
-npm run lint           # Run ESLint
-npm run format         # Format with Prettier
-npm run test           # Run tests
-npm run test:e2e       # Run e2e tests
-npm run test:cov       # Coverage report
-```
-
-## ��� Deployment
-
-### Docker Build
-
-```bash
-docker build -t api-gateway:latest .
-docker run -p 3000:3000 \
-  -e JWT_SECRET=secret \
-  -e REDIS_URL=redis://... \
-  -e RABBITMQ_URI=amqp://... \
-  api-gateway:latest
-```
-
-### Production Checklist
-
-- ✅ Set `NODE_ENV=production`
-- ✅ Configure all environment variables
-- ✅ Set strong `JWT_SECRET`
-- ✅ Enable Redis persistence
-- ✅ Configure RabbitMQ for high availability
-- ✅ Set up monitoring and logging
-
-## ��� API Documentation
-
-Access interactive Swagger UI at: **`http://localhost:3000/docs`**
-
-Features:
-
-- Live endpoint testing
-- Request/response examples
-- Parameter documentation
-- Error descriptions
-- Authentication setup
-
-## ��� Contributing
-
-### Code Standards
-
-- TypeScript strict mode
-- Prettier formatting
-- ESLint linting
-- snake_case for APIs
-- camelCase for code
-
-### Commit Format
-
-```
-type(scope): description
-
-feat(auth): add oauth
-fix(notifications): fix duplicate
-docs(api): update examples
-```
-
-## ��� License
-
-Part of the Distributed Notification System. See root LICENSE file.
-
----
-
-**Last Updated**: November 2025  
-**Maintained by**: HNG Development Team

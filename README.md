@@ -7,7 +7,10 @@ This repository serves as the central gateway for managing distributed notificat
 
 # HNG BACKEND Stage 4 GROUP PROJECT CONTRIBUTORS
 
-## ideategudy Contribution 
+## ideategudy Contribution
+- [Api Gateway Url](https://api-gateway-production-8507.up.railway.app/)
+- [Api Gateway docs](https://api-gateway-production-8507.up.railway.app/docs#/)
+- [Github docs](./api-gateway/README.md)
 
 ## Obianuju Contribution 
 
