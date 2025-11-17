@@ -8,7 +8,7 @@
   <strong>Main entry point for the Distributed Notification System microservices architecture</strong>
 </p>
 
-## ��� Overview
+## ��� Overview:
 
 The **API Gateway** is the central hub of the Distributed Notification System. It serves as:
 
